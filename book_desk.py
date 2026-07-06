@@ -2,9 +2,11 @@
 """
 Keep S605 Desk 16 booked with a 10:00 check-in.
 
-Runs STATELESSLY: scheduled to fire once around midnight and then every 30
-minutes from 05:00-09:00 Toronto time (see book-desk.yml). Each run does ONE
-check-and-fix:
+Runs STATELESSLY: fires at 18:00 (the instant tomorrow's booking window opens,
+since QReserve allows booking up to 24h before the END time), again at
+midnight as a backup, then every 30 minutes from 05:00-09:00 Toronto time
+(see book-desk.yml). Each run does ONE check-and-fix, on whichever day it's
+currently targeting (tomorrow for the 18:00 run, today for every other run):
   - no booking yet         -> create one (aiming at 10:00)
   - booking, start != 10   -> edit it to pull the check-in to 10:00
   - booking, start == 10   -> do nothing (this is the "stop editing" case)
@@ -45,10 +47,15 @@ RESERVED_FOR_TEXT = os.environ.get("QR_RESERVED_FOR_TEXT", "Divyasri")
 session = requests.Session()
 
 
+END_HOUR = (CHECKIN_HOUR + STRETCH_HOURS) % 24  # e.g. 10 + 8 = 18:00
+
+
 def is_in_schedule(now):
-    """Exact local schedule: once at midnight, then every run 05:00-09:00."""
+    """Evening window-open run, midnight backup, then 05:00-09:00 morning defends."""
+    if now.hour == END_HOUR and now.minute < 30:
+        return True                       # window for TOMORROW just opened (end - 24h)
     if now.hour == 0 and now.minute < 30:
-        return True                       # the once-at-midnight run
+        return True                       # midnight backup run (targets today)
     if 5 <= now.hour < 9:
         return True                       # 05:00 - 08:59
     if now.hour == 9 and now.minute == 0:
@@ -56,8 +63,11 @@ def is_in_schedule(now):
     return False
 
 
-def target_day():
-    return (datetime.now(TZ) + timedelta(days=DAYS_AHEAD)).date()
+def target_day(now):
+    """Evening run targets TOMORROW (its window just opened); every other run targets today."""
+    if now.hour == END_HOUR:
+        return (now + timedelta(days=DAYS_AHEAD + 1)).date()
+    return (now + timedelta(days=DAYS_AHEAD)).date()
 
 
 def desired_window(day):
@@ -157,7 +167,7 @@ def run_once():
         print(f"{now:%H:%M} local is outside the schedule; exiting.")
         return 0
 
-    day = target_day()
+    day = target_day(now)
     if not force and day.weekday() in SKIP_WEEKDAYS:
         print("Skipped weekday; nothing to do.")
         return 0

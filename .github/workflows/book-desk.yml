@@ -7,7 +7,10 @@ on:
     # local-time guard that ignores runs falling outside the real schedule,
     # so the extra firings are harmless no-ops.
     #
-    # ~midnight Toronto:  00:00 EDT = 04:00 UTC | 00:00 EST = 05:00 UTC
+    # 18:00 Toronto (window for TOMORROW's slot just opened, end - 24h):
+    #   18:00 EDT = 22:00 UTC | 18:00 EST = 23:00 UTC
+    - cron: "0 22,23 * * *"
+    # ~midnight Toronto (backup, targets today):  00:00 EDT = 04:00 UTC | 00:00 EST = 05:00 UTC
     - cron: "0 4,5 * * *"
     # 05:00-09:00 Toronto, every 30 min:
     #   EDT -> 09:00-13:00 UTC | EST -> 10:00-14:00 UTC  (union 09:00-14:xx)
