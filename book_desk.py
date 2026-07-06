@@ -51,10 +51,16 @@ END_HOUR = (CHECKIN_HOUR + STRETCH_HOURS) % 24  # e.g. 10 + 8 = 18:00
 
 
 def is_in_schedule(now):
-    """Evening window-open run, midnight backup, then 05:00-09:00 morning defends."""
-    if now.hour == END_HOUR and now.minute < 30:
+    """Evening window-open run, midnight backup, then 05:00-09:00 morning defends.
+
+    GitHub's scheduled cron can occasionally drop a single tick entirely under
+    load, not just delay it. The evening/midnight slots accept their FULL hour
+    (not just the first few minutes) so a 15-min-interval cron gets several
+    retries instead of one single shot with no fallback.
+    """
+    if now.hour == END_HOUR:
         return True                       # window for TOMORROW just opened (end - 24h)
-    if now.hour == 0 and now.minute < 30:
+    if now.hour == 0:
         return True                       # midnight backup run (targets today)
     if 5 <= now.hour < 9:
         return True                       # 05:00 - 08:59
