@@ -1,0 +1,42 @@
+name: Book QReserve desk
+
+on:
+  schedule:
+    # GitHub cron is UTC-only, so each Toronto time is listed for BOTH
+    # daylight-saving offsets (EDT = UTC-4, EST = UTC-5). The script has a
+    # local-time guard that ignores runs falling outside the real schedule,
+    # so the extra firings are harmless no-ops.
+    #
+    # ~midnight Toronto:  00:00 EDT = 04:00 UTC | 00:00 EST = 05:00 UTC
+    - cron: "0 4,5 * * *"
+    # 05:00-09:00 Toronto, every 30 min:
+    #   EDT -> 09:00-13:00 UTC | EST -> 10:00-14:00 UTC  (union 09:00-14:xx)
+    - cron: "*/30 9-14 * * *"
+  workflow_dispatch:         # manual test runs
+    inputs:
+      force:
+        description: "Bypass the schedule/weekday/window guard (real test run, will actually book/edit)"
+        type: boolean
+        default: false
+
+jobs:
+  book:
+    runs-on: ubuntu-latest
+    concurrency: book-desk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run booking
+        run: python book_desk.py
+        env:
+          QR_EMAIL: ${{ secrets.QR_EMAIL }}
+          QR_PASSWORD: ${{ secrets.QR_PASSWORD }}
+          QR_TZ: America/Toronto
+          QR_CHECKIN_HOUR: "10"
+          QR_STRETCH_HOURS: "8"
+          QR_DAYS_AHEAD: "0"
+          QR_FORCE: ${{ inputs.force }}
