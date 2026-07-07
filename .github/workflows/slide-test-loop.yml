@@ -17,9 +17,22 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: pip install requests
+      - name: Restore slider state
+        uses: actions/cache/restore@v4
+        with:
+          path: .slide_state.json
+          key: slide-state-${{ github.run_id }}
+          restore-keys: |
+            slide-state-
       - name: Run slider loop
         run: python slide_test.py --loop
         env:
           QR_EMAIL: ${{ secrets.QR_EMAIL }}
           QR_PASSWORD: ${{ secrets.QR_PASSWORD }}
           QR_TZ: America/Toronto
+      - name: Save slider state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .slide_state.json
+          key: slide-state-${{ github.run_id }}
