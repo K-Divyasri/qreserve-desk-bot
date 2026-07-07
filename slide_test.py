@@ -15,6 +15,7 @@ on". That makes it safe to run more or less often than exactly every 30 min.
 
 import os
 import sys
+import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -118,8 +119,8 @@ def edit(reservation_id, start, end):
     return resp.ok
 
 
-def run_once():
-    login()
+def step():
+    """One check-and-slide step. Returns True once the stop condition (10:00) is reached."""
     res = find_slider()
 
     if res is None:
@@ -127,19 +128,47 @@ def run_once():
         end = start + DURATION
         print(f"No slider yet -> creating {start} -> {end}")
         create(start, end)
-        return 0
+        return False
 
     start = res["start"]
     if start.hour == STOP_HOUR and start.minute == STOP_MINUTE:
         print(f"Start is already {start} -- reached 10:00, stopping (no-op).")
-        return 0
+        return True
 
     new_start = start + STEP
     new_end = new_start + DURATION
     print(f"Start is {start} -> sliding to {new_start} -> {new_end}")
     edit(res["id"], new_start, new_end)
+    return False
+
+
+def run_once():
+    login()
+    step()
+    return 0
+
+
+def run_loop(interval_seconds=300, max_iterations=50):
+    """Login once, then repeatedly step() with a real sleep between calls.
+
+    Doesn't depend on GitHub's scheduler firing repeatedly -- one job kicks
+    this off and it drives itself to completion (or to max_iterations, a
+    safety cap keeping total runtime well under the 6h GitHub job limit).
+    """
+    login()
+    for i in range(max_iterations):
+        done = step()
+        if done:
+            print(f"Loop finished after {i + 1} iteration(s).")
+            return 0
+        time.sleep(interval_seconds)
+    print(f"Hit max_iterations ({max_iterations}) without reaching 10:00 -- "
+          f"stopping; the hourly safety-net run will pick up from here.")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(run_once())
+    if "--loop" in sys.argv:
+        sys.exit(run_loop())
+    else:
+        sys.exit(run_once())

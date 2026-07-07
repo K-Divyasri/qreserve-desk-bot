@@ -1,0 +1,25 @@
+name: Slide test booking (loop)
+
+on:
+  workflow_dispatch: {}      # triggered once; the job then drives itself to
+                             # completion internally, no repeated schedule
+                             # triggers needed while it's running
+
+jobs:
+  slide-loop:
+    runs-on: ubuntu-latest
+    concurrency: slide-test
+    timeout-minutes: 300     # comfortably under GitHub's 6h hard job cap
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run slider loop
+        run: python slide_test.py --loop
+        env:
+          QR_EMAIL: ${{ secrets.QR_EMAIL }}
+          QR_PASSWORD: ${{ secrets.QR_PASSWORD }}
+          QR_TZ: America/Toronto

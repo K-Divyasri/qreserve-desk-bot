@@ -1,14 +1,15 @@
-name: Slide test booking
+name: Slide test booking (safety net)
 
 on:
   schedule:
-    # Every 5 minutes (GitHub's minimum interval), around the clock. Each
-    # run still advances the reservation by a fixed 30-min step, so this
-    # just runs through the 36 steps faster (~3h total instead of ~18h).
-    # slide_test.py is self-limiting: once start reaches 10:00, every later
-    # run is a harmless no-op.
-    - cron: "*/5 * * * *"
-  workflow_dispatch: {}      # manual test runs
+    # Hourly, single-step nudge -- a lightweight backup in case the main
+    # slide-test-loop.yml job dies mid-run (network blip, runner issue).
+    # At hourly spacing, GitHub's scheduler being a few minutes off barely
+    # matters, unlike at 5-min spacing. Harmless no-op once start=10:00 or
+    # while the main loop job is already actively running (same
+    # concurrency group -- this just queues briefly behind it).
+    - cron: "0 * * * *"
+  workflow_dispatch: {}      # manual single-step runs
 
 jobs:
   slide:
