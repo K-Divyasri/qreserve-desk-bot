@@ -1,9 +1,14 @@
 name: Slide test booking (loop)
 
 on:
-  workflow_dispatch: {}      # triggered once; the job then drives itself to
+  workflow_dispatch:         # triggered once; the job then drives itself to
                              # completion internally, no repeated schedule
                              # triggers needed while it's running
+    inputs:
+      seed_id:
+        description: "Manual escape hatch: adopt this existing reservation ID instead of creating a fresh one"
+        required: false
+        default: ""
 
 jobs:
   slide-loop:
@@ -30,6 +35,7 @@ jobs:
           QR_EMAIL: ${{ secrets.QR_EMAIL }}
           QR_PASSWORD: ${{ secrets.QR_PASSWORD }}
           QR_TZ: America/Toronto
+          QR_SEED_ID: ${{ inputs.seed_id }}
       - name: Save slider state
         if: always()
         uses: actions/cache/save@v4

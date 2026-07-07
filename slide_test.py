@@ -156,7 +156,20 @@ def step(current):
 
 def resume_state():
     """Load state from disk; if present, verify it directly by ID (source of
-    truth) rather than trusting the file blindly."""
+    truth) rather than trusting the file blindly.
+
+    QR_SEED_ID is a manual escape hatch: point it at an existing reservation
+    ID to adopt (e.g. one created outside the normal tracked flow) instead of
+    trying to create a fresh, conflicting one.
+    """
+    seed_id = os.environ.get("QR_SEED_ID")
+    if seed_id:
+        live = get_reservation(seed_id)
+        if live:
+            print(f"Adopted QR_SEED_ID {seed_id} -> {live}")
+            return live
+        print(f"QR_SEED_ID {seed_id} not valid -- ignoring.")
+
     cached = load_state()
     if cached is None:
         return None
