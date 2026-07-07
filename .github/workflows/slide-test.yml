@@ -2,10 +2,12 @@ name: Slide test booking
 
 on:
   schedule:
-    # Every 30 minutes, around the clock. slide_test.py is self-limiting:
-    # once the reservation's start time reaches 10:00, every later run is a
-    # harmless no-op.
-    - cron: "*/30 * * * *"
+    # Every 5 minutes (GitHub's minimum interval), around the clock. Each
+    # run still advances the reservation by a fixed 30-min step, so this
+    # just runs through the 36 steps faster (~3h total instead of ~18h).
+    # slide_test.py is self-limiting: once start reaches 10:00, every later
+    # run is a harmless no-op.
+    - cron: "*/5 * * * *"
   workflow_dispatch: {}      # manual test runs
 
 jobs:
