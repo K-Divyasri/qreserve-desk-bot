@@ -1,0 +1,27 @@
+name: Slide test booking
+
+on:
+  schedule:
+    # Every 30 minutes, around the clock. slide_test.py is self-limiting:
+    # once the reservation's start time reaches 10:00, every later run is a
+    # harmless no-op.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}      # manual test runs
+
+jobs:
+  slide:
+    runs-on: ubuntu-latest
+    concurrency: slide-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run slider
+        run: python slide_test.py
+        env:
+          QR_EMAIL: ${{ secrets.QR_EMAIL }}
+          QR_PASSWORD: ${{ secrets.QR_PASSWORD }}
+          QR_TZ: America/Toronto
