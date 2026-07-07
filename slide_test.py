@@ -33,7 +33,7 @@ RESERVED_FOR_TEXT = os.environ.get("QR_RESERVED_FOR_TEXT", "Divyasri")
 
 INITIAL_START = datetime(2026, 7, 7, 16, 0, tzinfo=TZ)   # fixed anchor, not "tomorrow"
 DURATION = timedelta(hours=6)                             # 16:00-22:00, kept constant
-STEP = timedelta(minutes=30)
+STEP = timedelta(minutes=2)
 STOP_HOUR, STOP_MINUTE = 10, 0
 # ----------------------------------------------------------------------
 
@@ -148,12 +148,13 @@ def run_once():
     return 0
 
 
-def run_loop(interval_seconds=300, max_iterations=50):
+def run_loop(interval_seconds=120, max_iterations=140):
     """Login once, then repeatedly step() with a real sleep between calls.
 
     Doesn't depend on GitHub's scheduler firing repeatedly -- one job kicks
     this off and it drives itself to completion (or to max_iterations, a
-    safety cap keeping total runtime well under the 6h GitHub job limit).
+    safety cap keeping total runtime well under the 6h GitHub job limit:
+    140 * 2min = ~4.7h).
     """
     login()
     for i in range(max_iterations):
