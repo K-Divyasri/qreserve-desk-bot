@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-One-off test automation: slide a reservation forward 2 minutes every step,
+One-off test automation: slide a reservation forward 1 minute every step,
 until its start time reaches 10:00 (at which point it stops touching it,
 forever after).
 
@@ -41,9 +41,9 @@ DESK_ID = os.environ.get("QR_DESK_ID", "1d9l6e3fe6ekxnhixp9cvsn9twx51m937gzk94")
 USER_ID = os.environ.get("QR_USER_ID", "1a5ewz87rv38ka4pszl3zdk30j8t6fwz98hh74")
 RESERVED_FOR_TEXT = os.environ.get("QR_RESERVED_FOR_TEXT", "Divyasri")
 
-INITIAL_START = datetime(2026, 7, 7, 19, 0, tzinfo=TZ)   # fixed anchor, after production's 18:00 end
-DURATION = timedelta(hours=3)                              # 19:00-22:00, kept constant
-STEP = timedelta(minutes=2)
+INITIAL_START = datetime(2026, 7, 7, 16, 0, tzinfo=TZ)   # fixed anchor, 4pm today
+DURATION = timedelta(hours=6)                              # 16:00-22:00, kept constant
+STEP = timedelta(minutes=1)
 STOP_HOUR, STOP_MINUTE = 10, 0
 
 STATE_FILE = Path(os.environ.get("QR_STATE_FILE", ".slide_state.json"))
@@ -189,15 +189,17 @@ def run_once():
     return 0
 
 
-def run_loop(interval_seconds=120, max_iterations=140):
+def run_loop(interval_seconds=60, max_iterations=280):
     """Login once, then repeatedly step() with a real sleep between calls,
     carrying state forward in memory (not re-querying) between iterations.
 
     Doesn't depend on GitHub's scheduler firing repeatedly -- one job kicks
     this off and it drives itself to completion (or to max_iterations, a
     safety cap keeping total runtime well under the 6h GitHub job limit:
-    140 * 2min = ~4.7h). State is saved to disk after every iteration so a
-    fresh job can resume exactly where this one left off.
+    280 * 1min = ~4.7h). State is saved to disk after every iteration so a
+    fresh job can resume exactly where this one left off. At 1min steps,
+    the full 16:00->10:00 distance (18h = 1080 steps) needs ~4 chained job
+    runs -- the hourly safety net relaunches automatically until it's done.
     """
     login()
     current = resume_state()
