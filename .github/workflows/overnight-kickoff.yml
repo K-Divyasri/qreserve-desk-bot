@@ -1,0 +1,41 @@
+name: Overnight slide - kickoff
+
+on:
+  schedule:
+    # 20:00-20:59 Toronto, every 15 min (both DST offsets fire; the script
+    # itself rejects the wrong-offset hour, same pattern as book_desk.py):
+    #   20:00 EDT = 00:00 UTC (next day) | 20:00 EST = 01:00 UTC (next day)
+    - cron: "*/15 0,1 * * *"
+  workflow_dispatch: {}      # manual test runs
+
+jobs:
+  kickoff:
+    runs-on: ubuntu-latest
+    concurrency: overnight-slide
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Restore overnight state
+        uses: actions/cache/restore@v4
+        with:
+          path: .overnight_state.json
+          key: overnight-state-${{ github.run_id }}
+          restore-keys: |
+            overnight-state-
+      - name: Run kickoff
+        run: python overnight_slide.py --kickoff
+        env:
+          QR_EMAIL: ${{ secrets.QR_EMAIL }}
+          QR_PASSWORD: ${{ secrets.QR_PASSWORD }}
+          QR_TZ: America/Toronto
+      - name: Save overnight state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .overnight_state.json
+          key: overnight-state-${{ github.run_id }}

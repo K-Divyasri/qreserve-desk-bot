@@ -1,0 +1,54 @@
+name: Overnight slide - continue
+
+on:
+  schedule:
+    # Every 15 minutes, around the clock -- safety net that keeps an
+    # already-active cycle moving (never creates a new one). No-ops if
+    # nothing is active or the cycle already reached 08:30. Same
+    # concurrency group as the kickoff job, so this just queues briefly
+    # behind it if that's still running.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:         # manual runs
+    inputs:
+      seed_id:
+        description: "Manual escape hatch: adopt this existing reservation ID"
+        required: false
+        default: ""
+      seed_target_day:
+        description: "Target day (YYYY-MM-DD) for the seeded reservation"
+        required: false
+        default: ""
+
+jobs:
+  continue:
+    runs-on: ubuntu-latest
+    concurrency: overnight-slide
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Restore overnight state
+        uses: actions/cache/restore@v4
+        with:
+          path: .overnight_state.json
+          key: overnight-state-${{ github.run_id }}
+          restore-keys: |
+            overnight-state-
+      - name: Run continue
+        run: python overnight_slide.py --continue
+        env:
+          QR_EMAIL: ${{ secrets.QR_EMAIL }}
+          QR_PASSWORD: ${{ secrets.QR_PASSWORD }}
+          QR_TZ: America/Toronto
+          QR_SEED_ID: ${{ inputs.seed_id }}
+          QR_SEED_TARGET_DAY: ${{ inputs.seed_target_day }}
+      - name: Save overnight state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .overnight_state.json
+          key: overnight-state-${{ github.run_id }}
